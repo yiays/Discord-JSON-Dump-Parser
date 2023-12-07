@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord JSON Dump Browser</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/solarized-dark.min.css>
+</head>
+
+<body>
+  <div class=preamble>
+    <div class=preamble__guild-icon-container>
+      <img class=preamble__guild-icon id="icon" alt="Guild icon" loading=lazy>
+    </div>
+    <div class=preamble__entries-container>
+      <div class=preamble__entry id="title">Discord JSON Dump Parser</div>
+      <div class=preamble__entry id="channel">Load a JSON file to start</div>
+    </div>
+  </div>
+  <main class="chatlog" id="chatlog">
+    <input type="file" name="jsonfile" accept="application/json" id="jsonfile">
+  </main>
+  <div class=postamble>
+    <div class=postamble__entry>Adapted from Discord Backup Tool by Yiays</div>
+  </div>
+
+  <script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js></script>
+  <script src=https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.8.1/lottie.min.js></script>
+  <script src="main.js"></script>
+</body>
+
+</html>
