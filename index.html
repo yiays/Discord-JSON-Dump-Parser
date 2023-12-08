@@ -18,15 +18,17 @@
     <div class=preamble__entries-container>
       <div class=preamble__entry id="title">Discord JSON Dump Parser</div>
       <div class=preamble__entry id="channel">Load a JSON file to start</div>
-      <label for="jsonfile">Select a Discord Backup:</label>
+      <label for="jsonfile">Select a Discord JSON Dump:</label>
       <input type="file" name="jsonfile" accept="application/json" id="jsonfile">
       <button onclick="writeDump()">Export compressed dump</button>
+      <br>
+      <sub>Supports JSON dumps created via <a href="https://github.com/Tyrrrz/DiscordChatExporter/">DiscordChatExporter</a></sub>
     </div>
   </div>
   <main class="chatlog" id="chatlog">
   </main>
   <div class=postamble>
-    <div class=postamble__entry>Adapted by <a href="https://yiays.com">Yiays</a></div>
+    <div class=postamble__entry>Original code by <a href="https://github.com/Tyrrrz/">Tyrrrz</a> extended and adapted by <a href="https://yiays.com">Yiays</a></div>
   </div>
 
   <script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js></script>
