@@ -756,9 +756,6 @@ ol {
 
 .chatlog__markdown-preserve {
   white-space: pre-wrap;
-  /* Hack to fix weird layout issue */
-  display: inline-block;
-  margin: -1.2rem 0 0 -1.6rem;
 }
 
 .chatlog__markdown-spoiler {

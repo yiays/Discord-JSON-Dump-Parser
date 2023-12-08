@@ -1,5 +1,13 @@
 let dumpData = null;
 let fileName = null;
+const timeFormat = {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.chatlog__markdown-pre--multiline').forEach(e => hljs.highlightBlock(e));
@@ -34,13 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
     
-function scrollToMessage(event,id) {
+function scrollToMessage(id) {
   const element=document.getElementById('chatlog__message-container-'+id);
   if(!element) return;
-  event.preventDefault();
   element.classList.add('chatlog__message-container--highlighted');
-  window.scrollTo({ top: element.getBoundingClientRect().top - document.body.getBoundingClientRect().top - (window.innerHeight / 2), behavior: 'smooth' });
-  window.setTimeout(() => element.classList.remove('chatlog__message-container--highlighted'), 2000);
+  setTimeout(() => {
+    window.scrollTo({ top: element.getBoundingClientRect().top - document.body.getBoundingClientRect().top - (window.innerHeight / 2), behavior: 'smooth' });
+    window.setTimeout(() => element.classList.remove('chatlog__message-container--highlighted'), 2000);
+  }, 500);
 }
 
 function showSpoiler(event, element) {
@@ -49,39 +58,61 @@ function showSpoiler(event, element) {
   if (element.classList.contains('chatlog__markdown-spoiler--hidden')) { event.preventDefault(); element.classList.remove('chatlog__markdown-spoiler--hidden'); }
 }
 
-function renderDump(page=1) {
+function renderDump(page=-1) {
   document.getElementById('title').innerText = dumpData.guild.name;
   document.getElementById('channel').innerText = dumpData.channel.category + ' / ' + dumpData.channel.name;
   document.getElementById('icon').setAttribute('src', dumpData.guild.iconUrl);
 
   let out = '';
-  let start = Math.max(dumpData.messages.length - (50 * page), 0);
-  let end = start + 50;
+
+  // Page tracking logic
   let pageCount = Math.ceil(dumpData.messages.length / 50);
+  if(page == -1) page = pageCount;
+  let start = Math.max(50 * (page - 1), 0);
+  let end = start + 50;
+
+  let previousAuthor = 0;
   dumpData.messages.slice(start, end).forEach((message) => {
-    out += renderMessage(message);
+    out += renderMessage(message, previousAuthor == message.author);
+    previousAuthor = message.author;
   });
 
-  if(page < pageCount) {
-    out = `<button class="loadmore" id="load-up" onclick="renderDump(${page + 1})">Load more</button>` + out;
-  }
   if(page > 1) {
-    out += `<button class="loadmore" id="load-down" onclick="renderDump(${page - 1})">Load more</button>`;
+    out = `<button class="loadmore" id="load-up" onclick="renderDump(${page - 1});scrollToMessage('${dumpData.messages[start - 1].id}')">Load more</button>` +
+      `&nbsp;Page ${page} of ${pageCount}&nbsp;` +
+      `<button class="loadmore" id="load-start" onclick="renderDump(1);scrollToMessage('${dumpData.messages[0].id}')">Jump to start</button>` + out;
+  }
+  if(page < pageCount) {
+    out += `<button class="loadmore" id="load-down" onclick="renderDump(${page + 1});scrollToMessage('${dumpData.messages[end].id}')">Load more</button>` +
+      `&nbsp;Page ${page} of ${pageCount}&nbsp;` +
+      `<button class="loadmore" id="load-start" onclick="renderDump(${pageCount});scrollToMessage('${dumpData.messages[dumpData.messages.length - 1].id}')">Jump to end</button>`;
   }
 
   document.getElementById('chatlog').innerHTML = out;
 }
 
-function renderMessage(message) {
-  let author, reply, content, attachments, embeds, stickers, reactions;
-  author = dumpData.authors[message.author];
+function renderMessage(message, skipAuthor=false) {
+  let pfp, usertag, reply, content, attachments, embeds, stickers, reactions;
+  let author = dumpData.authors[message.author];
+
+  if(message['reference']) reply = `[Reply to ${message.reference.messageId}]`;
+
+  if(!skipAuthor) {
+    pfp = `<img class="chatlog__avatar" src="${author.avatarUrl}" alt="Avatar" loading="lazy">`;
+    let parseDate = new Date(Date.parse(message.timestamp));
+    usertag = `
+    <div class="chatlog__header">
+      <span class="chatlog__author" style="color:${author.color};" title="${author.name}#${author.discriminator}" data-user-id="${author.id}">${author.nickname}</span>
+      <span class="chatlog__timestamp" title="${message.timestamp}">
+        <a href="#chatlog__message-container-${message.id}">${parseDate.toLocaleString(undefined, timeFormat).replace(' am', 'am').replace(' pm', 'pm')}</a>
+      </span>
+    </div>`;
+  }
 
   if(message.content) {
     content = `
     <div class="chatlog__content chatlog__markdown">
-      <span class="chatlog__markdown-preserve">
-        ${message.content}
-      </span>
+      <span class="chatlog__markdown-preserve">${message.content}</span>
     </div>`
   }
 
@@ -127,21 +158,22 @@ function renderMessage(message) {
     })
   }
 
+  if(message['stickers']) stickers = '[Stickers]';
+
+  if(message['reactions']) reactions = '[Reactions]';
+
+  if(message['mentions']) mentions = '[Mentions]';
+
   return `
   <div class="chatlog__message-group">
     ${reply?reply:''}
     <div id="chatlog__message-container-${message.id}" class="chatlog__message-container" data-message-id="${message.id}">
       <div class="chatlog__message">
         <div class="chatlog__message-aside">
-          <img class="chatlog__avatar" src="${author.avatarUrl}" alt="Avatar" loading="lazy">
+          ${pfp?pfp:''}
         </div>
         <div class="chatlog__message-primary">
-          <div class="chatlog__header">
-            <span class="chatlog__author" style="color:${author.color};" title="${author.name}.${author.discriminator}" data-user-id="${author.id}">${author.nickname}</span>
-            <span class="chatlog__timestamp" title="${message.timestamp}">
-              <a href="#chatlog__message-container-${message.id}">${message.timestamp}</a>
-            </span>
-          </div>
+          ${usertag?usertag:''}
           ${content?content:''}
           ${attachments?attachments:''}
           ${embeds?embeds:''}
