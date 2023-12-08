@@ -162,12 +162,14 @@ function optimizeDump() {
 
   for(let i = 0; i < dumpData.messages.length; i++) {
     // Consolidate authors
-    if("roles" in dumpData.messages[i].author) delete dumpData.messages[i].author.roles;
-    let authorid = dumpData.messages[i].author.id;
-    if(!(authorid in dumpData.authors)) {
-      dumpData.authors[authorid] = {...dumpData.messages[i].author};
+    if(typeof(dumpData.messages[i].author) == 'object') {
+      if("roles" in dumpData.messages[i].author) delete dumpData.messages[i].author.roles;
+      let authorid = dumpData.messages[i].author.id;
+      if(!(authorid in dumpData.authors)) {
+        dumpData.authors[authorid] = {...dumpData.messages[i].author};
+      }
+      dumpData.messages[i].author = authorid;
     }
-    dumpData.messages[i].author = authorid;
 
     // Remove fields which are empty or unused
     if("callEndedTimestamp" in dumpData.messages[i]) delete dumpData.messages[i].callEndedTimestamp;
