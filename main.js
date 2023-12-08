@@ -1,4 +1,5 @@
 let dumpData = null;
+let fileName = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.chatlog__markdown-pre--multiline').forEach(e => hljs.highlightBlock(e));
@@ -17,13 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('jsonfile').addEventListener('change', (e) => {
     const file = e.target.files[0];
+    fileName = file.name;
 
     if(file) {
       const reader = new FileReader();
 
       reader.onload = (e) => {
         dumpData = JSON.parse(e.target.result);
-        renderDump(dumpData);
+        optimizeDump();
+        renderDump();
       }
 
       reader.readAsText(file);
@@ -46,31 +49,33 @@ function showSpoiler(event, element) {
   if (element.classList.contains('chatlog__markdown-spoiler--hidden')) { event.preventDefault(); element.classList.remove('chatlog__markdown-spoiler--hidden'); }
 }
 
-function renderDump(dump, page=1) {
-  document.getElementById('title').innerText = dump.guild.name;
-  document.getElementById('channel').innerText = dump.channel.category + ' / ' + dump.channel.name;
-  document.getElementById('icon').setAttribute('src', dump.guild.iconUrl);
+function renderDump(page=1) {
+  document.getElementById('title').innerText = dumpData.guild.name;
+  document.getElementById('channel').innerText = dumpData.channel.category + ' / ' + dumpData.channel.name;
+  document.getElementById('icon').setAttribute('src', dumpData.guild.iconUrl);
 
   let out = '';
-  let start = Math.max(dump.messages.length - (50 * page), 0);
+  let start = Math.max(dumpData.messages.length - (50 * page), 0);
   let end = start + 50;
-  let pageCount = Math.ceil(dump.messages.length / 50);
-  dump.messages.slice(start, end).forEach((message) => {
+  let pageCount = Math.ceil(dumpData.messages.length / 50);
+  dumpData.messages.slice(start, end).forEach((message) => {
     out += renderMessage(message);
   });
 
   if(page < pageCount) {
-    out = `<button class="loadmore" id="load-up" onclick="renderDump(dumpData, ${page + 1})">Load more</button>` + out;
+    out = `<button class="loadmore" id="load-up" onclick="renderDump(${page + 1})">Load more</button>` + out;
   }
   if(page > 1) {
-    out += `<button class="loadmore" id="load-down" onclick="renderDump(dumpData, ${page - 1})">Load more</button>`;
+    out += `<button class="loadmore" id="load-down" onclick="renderDump(${page - 1})">Load more</button>`;
   }
 
   document.getElementById('chatlog').innerHTML = out;
 }
 
 function renderMessage(message) {
-  let reply, content, attachments, embeds, stickers, reactions;
+  let author, reply, content, attachments, embeds, stickers, reactions;
+  author = dumpData.authors[message.author];
+
   if(message.content) {
     content = `
     <div class="chatlog__content chatlog__markdown">
@@ -80,7 +85,7 @@ function renderMessage(message) {
     </div>`
   }
 
-  if(message.attachments) {
+  if(message['attachments']) {
     attachments = '';
     message.attachments.forEach((attachment) => {
       attachments += '<div class="chatlog__attachment">'
@@ -94,7 +99,7 @@ function renderMessage(message) {
     });
   }
 
-  if(message.embeds) {
+  if(message['embeds']) {
     embeds = '';
     message.embeds.forEach((embed) => {
       embeds += `
@@ -128,16 +133,16 @@ function renderMessage(message) {
     <div id="chatlog__message-container-${message.id}" class="chatlog__message-container" data-message-id="${message.id}">
       <div class="chatlog__message">
         <div class="chatlog__message-aside">
-          <img class="chatlog__avatar" src="${message.author.avatarUrl}" alt="Avatar" loading="lazy">
+          <img class="chatlog__avatar" src="${author.avatarUrl}" alt="Avatar" loading="lazy">
         </div>
         <div class="chatlog__message-primary">
           <div class="chatlog__header">
-            <span class="chatlog__author" style="color:${message.author.color};" title="${message.author.name}.${message.author.discriminator}" data-user-id="${message.author.id}">${message.author.nickname}</span>
+            <span class="chatlog__author" style="color:${author.color};" title="${author.name}.${author.discriminator}" data-user-id="${author.id}">${author.nickname}</span>
             <span class="chatlog__timestamp" title="${message.timestamp}">
               <a href="#chatlog__message-container-${message.id}">${message.timestamp}</a>
             </span>
           </div>
-          ${message.content?message.content:''}
+          ${content?content:''}
           ${attachments?attachments:''}
           ${embeds?embeds:''}
           ${stickers?stickers:''}
@@ -146,4 +151,43 @@ function renderMessage(message) {
       </div>
     </div>
   </div>`;
+}
+
+function optimizeDump() {
+  // Reduces memory footprint of the chat history dump by removing unessecary information
+  //console.log("Before: ", JSON.stringify(dumpData, null, 0).length);
+
+  // Prepare to store new fields
+  if(!('authors' in  dumpData)) dumpData.authors = {};
+
+  for(let i = 0; i < dumpData.messages.length; i++) {
+    // Consolidate authors
+    if("roles" in dumpData.messages[i].author) delete dumpData.messages[i].author.roles;
+    let authorid = dumpData.messages[i].author.id;
+    if(!(authorid in dumpData.authors)) {
+      dumpData.authors[authorid] = {...dumpData.messages[i].author};
+    }
+    dumpData.messages[i].author = authorid;
+
+    // Remove fields which are empty or unused
+    if("callEndedTimestamp" in dumpData.messages[i]) delete dumpData.messages[i].callEndedTimestamp;
+    if('attachments' in dumpData.messages[i] && dumpData.messages[i].attachments.length == 0) delete dumpData.messages[i].attachments;
+    if('embeds' in dumpData.messages[i] && dumpData.messages[i].embeds.length == 0) delete dumpData.messages[i].embeds;
+    if('stickers' in dumpData.messages[i] && dumpData.messages[i].stickers.length == 0) delete dumpData.messages[i].stickers;
+    if('reactions' in dumpData.messages[i] && dumpData.messages[i].reactions.length == 0) delete dumpData.messages[i].reactions;
+    if('mentions' in dumpData.messages[i] && dumpData.messages[i].mentions.length == 0) delete dumpData.messages[i].mentions;
+  }
+  //console.log("After: ", JSON.stringify(dumpData, null, 0).length);
+}
+
+function writeDump() {
+  if(dumpData === null) {
+    alert("No data to export!");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(dumpData, null, 0)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName?.replace('.json', '.min.json') || 'export.min.json';
+  link.click();
 }
