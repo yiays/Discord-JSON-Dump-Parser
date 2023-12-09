@@ -8,15 +8,17 @@ In the future, I would also like to add media backups and search.
 
 - [x] Loading and exporting JSON text channel data
 - [x] Large exports are paginated for performance
-- [-] Support for Discord features
+- [x] Support for Discord features
   - [x] Nicknames, profile pictures, role colours
   - [x] Attachments / Media
   - [x] Embeds
-  - [ ] Replies
+  - [x] Reactions
+  - [x] Replies
   - [ ] Stickers
-  - [ ] Reactions
   - [ ] Mentions
   - [ ] Pinned messages
+  - [ ] Emoijs in chat (may not be possible)
+  - [ ] System messages (low priority)
 - [ ] Backing up media
 - [ ] Whole server browsing by combining channel dumps
 

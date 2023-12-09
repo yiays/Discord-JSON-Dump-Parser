@@ -43,13 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
     
 function scrollToMessage(id) {
-  const element=document.getElementById('chatlog__message-container-'+id);
-  if(!element) return;
+  let element=document.getElementById('chatlog__message-container-'+id);
+  if(!element) {
+    // Search other pages for message
+    let pos = dumpData.messages.findIndex((msg) => msg.id == id);
+    if(pos >= 0) {
+      renderDump(Math.ceil(pos/50));
+      element=document.getElementById('chatlog__message-container-'+id);
+    }
+    else return false;
+  }
   element.classList.add('chatlog__message-container--highlighted');
   setTimeout(() => {
     window.scrollTo({ top: element.getBoundingClientRect().top - document.body.getBoundingClientRect().top - (window.innerHeight / 2), behavior: 'smooth' });
     window.setTimeout(() => element.classList.remove('chatlog__message-container--highlighted'), 2000);
   }, 500);
+  return true;
 }
 
 function showSpoiler(event, element) {
@@ -95,10 +104,26 @@ function renderMessage(message, skipAuthor=false) {
   let pfp, usertag, reply, content, attachments, embeds, stickers, reactions;
   let author = dumpData.authors[message.author];
 
-  if(message['reference']) reply = `[Reply to ${message.reference.messageId}]`;
+  if(message['reference']) {
+    let replyMessage = dumpData.messages.find((i) => i.id == message.reference.messageId);
+    if(replyMessage !== -1) {
+      let replyAuthor = dumpData.authors[replyMessage.author];
+      reply = `
+      <div class="chatlog__reply">
+        <img class="chatlog__reply-avatar" src="${replyAuthor.avatarUrl}" alt="Avatar" loading="lazy">
+        <div class="chatlog__reply-author" title="${replyAuthor.name}#${replyAuthor.discriminator}">${replyAuthor.nickname}</div>
+        <div class="chatlog__reply-content">
+          <span class="chatlog__reply-link" onclick="scrollToMessage(event,'${message.reference.messageId}')">
+            <em>Click to see original message</em>
+          </span>
+        </div>
+      </div>`;
+    }
+  }
 
-  if(!skipAuthor) {
+  if(!skipAuthor || reply) {
     pfp = `<img class="chatlog__avatar" src="${author.avatarUrl}" alt="Avatar" loading="lazy">`;
+    if(reply) pfp = `<div class="chatlog__reply-symbol"></div>` + pfp;
     let parseDate = new Date(Date.parse(message.timestamp));
     usertag = `
     <div class="chatlog__header">
@@ -138,17 +163,23 @@ function renderMessage(message, skipAuthor=false) {
           <div class="chatlog__embed-color-pill" style="background:${embed.color}"></div>
           <div class="chatlog__embed-content-container">
             <div class="chatlog__embed-content">
-              `;
-      if(embed['author']) embeds += `<a class="chatlog__embed-author" href="${embed.author?.url}" target="_blank">${embed.author?.name}</a>`;
-      embeds += `
-              <a class="chatlog__embed-title" href="${embed.url}" target="_blank">${embed.title}</a>
+              <div class="chatlog__embed-text">
+                `;
+      if(embed['author']) embeds += `<div class="chatlog__embed-author-container">
+                <a class="chatlog__embed-author-link" href="${embed.author.url}" target="_blank">${embed.author.name}</a>
+              </div>`;
+      embeds += `<div class="chatlog__embed-title">
+                <a class="chatlog__embed-title-link" href="${embed.url}" target="_blank">${embed.title}</a>
+              </div>
               <span class="chatlog__embed-description">${embed.description}</span>
               `;
       if(embed['video']) {
+        embeds += '<div class="chatlog__embed-youtube-container">';
         if(embed.video.url.toLowerCase().match(/(\.webm|\.mov|\.mp4|\.mkv)$/))
           embeds += `<video class="chatlog__embed-generic-video" muted autoplay loop src="${embed.video.url}">`;
         else
-          embeds += `<iframe class="chatlog__embed-generic-video chatlog__embed-youtube" width="${embed.video.width}" height="${embed.video.height}"></iframe>`;
+          embeds += `<iframe class="chatlog__embed-generic-video chatlog__embed-youtube" src="${embed.video.url}" width="400" height="255"></iframe>`;
+        embeds += '</div>'
       }
       else if(embed['thumbnail']) embeds += `<img src="${embed.thumbnail.url}" width="${embed.thumbnail.width}" height="${embed.thumbnail.height}"`;
       embeds += `
@@ -160,19 +191,28 @@ function renderMessage(message, skipAuthor=false) {
 
   if(message['stickers']) stickers = '[Stickers]';
 
-  if(message['reactions']) reactions = '[Reactions]';
+  if(message['reactions']) {
+    reactions = `<div class="chatlog__reactions">`
+    message.reactions.forEach((react) => {
+      reactions += `<div class="chatlog__reaction" title="${react.emoji.code}">
+        <img class="chatlog__emoji chatlog__emoji--small" alt="${react.emoji.name}" src="${react.emoji.imageUrl}" loading="lazy">
+        <span class="chatlog__reaction-count">${react.count}</span>
+      </div>`;
+    })
+    reactions += `</div>`
+  }
 
   if(message['mentions']) mentions = '[Mentions]';
 
   return `
   <div class="chatlog__message-group">
-    ${reply?reply:''}
     <div id="chatlog__message-container-${message.id}" class="chatlog__message-container" data-message-id="${message.id}">
       <div class="chatlog__message">
         <div class="chatlog__message-aside">
           ${pfp?pfp:''}
         </div>
         <div class="chatlog__message-primary">
+          ${reply?reply:''}
           ${usertag?usertag:''}
           ${content?content:''}
           ${attachments?attachments:''}
