@@ -233,7 +233,7 @@ function optimizeDump() {
   if(!('authors' in  dumpData)) dumpData.authors = {};
 
   for(let i = 0; i < dumpData.messages.length; i++) {
-    // Consolidate authors
+    // Consolidate message authors
     if(typeof(dumpData.messages[i].author) == 'object') {
       if("roles" in dumpData.messages[i].author) delete dumpData.messages[i].author.roles;
       let authorid = dumpData.messages[i].author.id;
@@ -248,7 +248,23 @@ function optimizeDump() {
     if('attachments' in dumpData.messages[i] && dumpData.messages[i].attachments.length == 0) delete dumpData.messages[i].attachments;
     if('embeds' in dumpData.messages[i] && dumpData.messages[i].embeds.length == 0) delete dumpData.messages[i].embeds;
     if('stickers' in dumpData.messages[i] && dumpData.messages[i].stickers.length == 0) delete dumpData.messages[i].stickers;
-    if('reactions' in dumpData.messages[i] && dumpData.messages[i].reactions.length == 0) delete dumpData.messages[i].reactions;
+    if('reactions' in dumpData.messages[i]) {
+      if (dumpData.messages[i].reactions.length == 0) delete dumpData.messages[i].reactions;
+      else {
+        // Consolidate reaction users
+        for(let j = 0; j < dumpData.messages[i].reactions.length; j++) {
+          if(dumpData.messages[i].reactions[j].users.length && typeof(dumpData.messages[i].reactions[j].users[0]) == 'object') {
+            for(let k = 0; k < dumpData.messages[i].reactions[j].users.length; k++) {
+              let authorid = dumpData.messages[i].reactions[j].users[k].id;
+              if(!(authorid in dumpData.authors)) {
+                dumpData.authors[authorid] = {...dumpData.messages[i].reactions[j].users[k]};
+              }
+              dumpData.messages[i].reactions[j].users[k] = authorid;
+            }
+          }
+        }
+      }
+    }
     if('mentions' in dumpData.messages[i] && dumpData.messages[i].mentions.length == 0) delete dumpData.messages[i].mentions;
   }
   //console.log("After: ", JSON.stringify(dumpData, null, 0).length);

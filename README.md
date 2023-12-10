@@ -14,10 +14,11 @@ In the future, I would also like to add media backups and search.
   - [x] Embeds
   - [x] Reactions
   - [x] Replies
-  - [ ] Stickers
+  - [ ] Markdown formatting
   - [ ] Mentions
   - [ ] Pinned messages
   - [ ] Emoijs in chat (may not be possible)
+  - [ ] Stickers (low priority, system stickers may not be possible)
   - [ ] System messages (low priority)
 - [ ] Backing up media
 - [ ] Whole server browsing by combining channel dumps
