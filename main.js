@@ -137,7 +137,7 @@ function renderMessage(message, skipAuthor=false) {
   if(message.content) {
     content = `
     <div class="chatlog__content chatlog__markdown">
-      <span class="chatlog__markdown-preserve">${message.content}</span>
+      <span class="chatlog__markdown-preserve">${marked.parseInline(message.content)}</span>
     </div>`
   }
 
@@ -171,7 +171,7 @@ function renderMessage(message, skipAuthor=false) {
       embeds += `<div class="chatlog__embed-title">
                 <a class="chatlog__embed-title-link" href="${embed.url}" target="_blank">${embed.title}</a>
               </div>
-              <span class="chatlog__embed-description">${embed.description}</span>
+              <span class="chatlog__embed-description">${marked.parse(embed.description)}</span>
               `;
       if(embed['video']) {
         embeds += '<div class="chatlog__embed-youtube-container">';

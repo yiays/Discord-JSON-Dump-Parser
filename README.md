@@ -14,7 +14,7 @@ In the future, I would also like to add media backups and search.
   - [x] Embeds
   - [x] Reactions
   - [x] Replies
-  - [ ] Markdown formatting
+  - [x] Markdown formatting
   - [ ] Mentions
   - [ ] Pinned messages
   - [ ] Emoijs in chat (may not be possible)
