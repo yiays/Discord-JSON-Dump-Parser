@@ -43,10 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
     
 function scrollToMessage(id) {
+  let pos = true;
   let element=document.getElementById('chatlog__message-container-'+id);
   if(!element) {
     // Search other pages for message
-    let pos = dumpData.messages.findIndex((msg) => msg.id == id);
+    pos = dumpData.messages.findIndex((msg) => msg.id == id);
     if(pos >= 0) {
       renderDump(Math.ceil(pos/50));
       element=document.getElementById('chatlog__message-container-'+id);
@@ -58,7 +59,7 @@ function scrollToMessage(id) {
     window.scrollTo({ top: element.getBoundingClientRect().top - document.body.getBoundingClientRect().top - (window.innerHeight / 2), behavior: 'smooth' });
     window.setTimeout(() => element.classList.remove('chatlog__message-container--highlighted'), 2000);
   }, 500);
-  return true;
+  return pos;
 }
 
 function showSpoiler(event, element) {
@@ -202,7 +203,13 @@ function renderMessage(message, skipAuthor=false) {
     reactions += `</div>`
   }
 
-  if(message['mentions']) mentions = '[Mentions]';
+  if(message['mentions']) {
+    message.mentions.forEach((mentionId) => {
+      let user = dumpData.authors[mentionId];
+      content = content.replace(`@${user.nickname}`,
+        `<span class="chatlog__markdown-mention" title="${user.name}#${user.discriminator}">@${user.nickname}</span>`)
+    });
+  }
 
   return `
   <div class="chatlog__message-group">
@@ -253,19 +260,31 @@ function optimizeDump() {
       else {
         // Consolidate reaction users
         for(let j = 0; j < dumpData.messages[i].reactions.length; j++) {
-          if(dumpData.messages[i].reactions[j].users.length && typeof(dumpData.messages[i].reactions[j].users[0]) == 'object') {
-            for(let k = 0; k < dumpData.messages[i].reactions[j].users.length; k++) {
-              let authorid = dumpData.messages[i].reactions[j].users[k].id;
-              if(!(authorid in dumpData.authors)) {
-                dumpData.authors[authorid] = {...dumpData.messages[i].reactions[j].users[k]};
-              }
-              dumpData.messages[i].reactions[j].users[k] = authorid;
+          for(let k = 0; k < dumpData.messages[i].reactions[j].users.length; k++) {
+            if (typeof(dumpData.messages[i].reactions[j].users[0]) != 'object') break;
+            let authorid = dumpData.messages[i].reactions[j].users[k].id;
+            if(!(authorid in dumpData.authors)) {
+              dumpData.authors[authorid] = {...dumpData.messages[i].reactions[j].users[k]};
             }
+            dumpData.messages[i].reactions[j].users[k] = authorid;
           }
         }
       }
     }
-    if('mentions' in dumpData.messages[i] && dumpData.messages[i].mentions.length == 0) delete dumpData.messages[i].mentions;
+    if('mentions' in dumpData.messages[i]) {
+      if (dumpData.messages[i].mentions.length == 0) delete dumpData.messages[i].mentions;
+      else {
+        // Consolidate mentioned users
+        for (let j = 0; j < dumpData.messages[i].mentions.length; j++) {
+          if (typeof(dumpData.messages[i].mentions[j]) != 'object') break;
+          let authorid = dumpData.messages[i].mentions[j].id;
+          if(!(authorid in dumpData.authors)) {
+            dumpData.authors[authorid] = {...dumpData.messages[i].mentions[j]};
+          }
+          dumpData.messages[i].mentions[j] = authorid;
+        }
+      }
+    }
   }
   //console.log("After: ", JSON.stringify(dumpData, null, 0).length);
 }

@@ -15,7 +15,7 @@ In the future, I would also like to add media backups and search.
   - [x] Reactions
   - [x] Replies
   - [x] Markdown formatting
-  - [ ] Mentions
+  - [x] Mentions
   - [ ] Pinned messages
   - [ ] Emoijs in chat (may not be possible)
   - [ ] Stickers (low priority, system stickers may not be possible)
